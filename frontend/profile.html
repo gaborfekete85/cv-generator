@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My profile — CV Generator</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate icon" href="/favicon.ico" />
+  <style>
+    :root {
+      --blue-400: #60a5fa; --blue-500: #3b82f6; --blue-600: #2563eb;
+      --pink-400: #f472b6; --pink-500: #ec4899; --pink-600: #db2777;
+    }
+    html[data-theme="light"] {
+      --bg: #f5f7ff; --bg-grad-a: #f5f7ff; --bg-grad-b: #fdf2f8;
+      --card: #ffffff; --card-border: #e2e8f0;
+      --text: #0f172a; --muted: #64748b;
+      --input-bg: #ffffff; --input-border: #dbeafe;
+      --input-focus: var(--pink-500);
+      --input-focus-shadow: rgba(236, 72, 153, 0.15);
+      --primary: var(--blue-500); --primary-hover: var(--blue-600);
+      --primary-text: #ffffff; --accent: var(--pink-500);
+      --secondary-bg: #fff; --secondary-border: var(--pink-200, #fbcfe8);
+      --secondary-text: var(--pink-600); --secondary-hover: #fdf2f8;
+      --danger: #dc2626;
+      --shadow-card: 0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.03);
+    }
+    html[data-theme="dark"] {
+      --bg: #0b1020; --bg-grad-a: #0b1020; --bg-grad-b: #1a0b1f;
+      --card: #141c30; --card-border: #263049;
+      --text: #e2e8f0; --muted: #94a3b8;
+      --input-bg: #0f1628; --input-border: #2a3553;
+      --input-focus: var(--pink-400);
+      --input-focus-shadow: rgba(244,114,182,0.2);
+      --primary: var(--blue-400); --primary-hover: #93c5fd;
+      --primary-text: #0b1020; --accent: var(--pink-400);
+      --secondary-bg: transparent; --secondary-border: var(--pink-400);
+      --secondary-text: var(--pink-400); --secondary-hover: rgba(244,114,182,0.12);
+      --danger: #f87171;
+      --shadow-card: 0 1px 2px rgba(0,0,0,0.4);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100%;
+    }
+    body {
+      background:
+        radial-gradient(1200px 600px at 10% -10%, var(--bg-grad-a) 0%, transparent 60%),
+        radial-gradient(1000px 500px at 100% 100%, var(--bg-grad-b) 0%, transparent 55%),
+        var(--bg);
+      min-height: 100vh;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    header h1 {
+      font-size: 28px; margin: 0;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 22px; margin-bottom: 16px;
+      box-shadow: var(--shadow-card);
+    }
+    h2 { font-size: 16px; margin: 0 0 14px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+    .helper { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    input[type="text"], input[type="email"], input[type="url"], input[type="tel"],
+    input[type="month"], textarea {
+      width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit;
+      border: 1px solid var(--input-border); border-radius: 10px;
+      background: var(--input-bg); color: var(--text); outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:hover, textarea:hover { border-color: var(--accent); }
+    input:focus, textarea:focus {
+      border-color: var(--input-focus);
+      box-shadow: 0 0 0 3px var(--input-focus-shadow);
+    }
+    textarea { min-height: 90px; resize: vertical; }
+
+    .row { display: grid; gap: 12px; }
+    .row-2 { grid-template-columns: 1fr 1fr; }
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 600px) { .row-2, .row-3 { grid-template-columns: 1fr; } }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 18px; font-size: 14px; font-weight: 600;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: var(--primary-text); border: none; border-radius: 10px; cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.25);
+      transition: filter 0.15s;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.08); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn.secondary {
+      background: var(--secondary-bg); color: var(--secondary-text);
+      border: 1.5px solid var(--secondary-border); box-shadow: none;
+    }
+    .btn.secondary:hover:not(:disabled) { background: var(--secondary-hover); }
+    .btn.small { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+    .btn.danger { background: transparent; color: var(--danger); border: 1.5px solid var(--danger); box-shadow: none; }
+    .btn.danger:hover { background: rgba(220,38,38,0.08); }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+
+    .sub-card {
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      background: rgba(59,130,246,0.02);
+    }
+
+    .remove-btn {
+      float: right;
+      background: transparent;
+      border: 0;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+    }
+    .remove-btn:hover { color: var(--danger); }
+
+    .banner {
+      background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(236,72,153,0.08));
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .banner.ok { border-color: rgba(22,163,74,0.35); background: rgba(22,163,74,0.08); color: #16a34a; }
+    .banner.err { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); color: var(--danger); }
+    .hidden { display: none; }
+  </style>
+
+  <script>
+    window.AUTH_ENABLED = ("__AUTH_ENABLED__" === "true");
+    window.CLERK_PUBLISHABLE_KEY = "__CLERK_PUBLISHABLE_KEY__";
+    window.CLERK_FRONTEND_API = "__CLERK_FRONTEND_API__";
+    (function () {
+      try {
+        var t = localStorage.getItem("cvgen-theme");
+        if (!t) t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    if (window.AUTH_ENABLED && window.CLERK_PUBLISHABLE_KEY) {
+      var s = document.createElement("script");
+      s.async = true; s.crossOrigin = "anonymous";
+      s.setAttribute("data-clerk-publishable-key", window.CLERK_PUBLISHABLE_KEY);
+      s.src = window.CLERK_FRONTEND_API + "/npm/@clerk/clerk-js@latest/dist/clerk.browser.js";
+      s.onload = function () { window.__clerkReady = true; };
+      s.onerror = function () { window.__clerkError = "Failed to load Clerk SDK"; };
+      document.head.appendChild(s);
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>My profile</h1>
+      <a href="/" class="btn secondary">&larr; Back to app</a>
+    </header>
+
+    <div id="banner-ok" class="banner ok hidden">Saved.</div>
+    <div id="banner-err" class="banner err hidden"></div>
+
+    <div id="auth-gate" class="banner hidden">
+      You need to be signed in to create or edit your profile.
+      <a href="/login" class="btn small" style="margin-left: 8px;">Sign in</a>
+    </div>
+
+    <form id="profile-form" class="hidden">
+      <!-- Profile picture -->
+      <section class="card">
+        <h2>Profile picture</h2>
+        <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+          <div style="
+                width: 120px; height: 120px; border-radius: 50%;
+                overflow: hidden;
+                border: 1px solid var(--card-border);
+                background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(236,72,153,0.08));
+                display: flex; align-items: center; justify-content: center;
+                flex: 0 0 auto;
+              ">
+            <img id="pic-preview" alt=""
+                 style="width: 100%; height: 100%; object-fit: cover; display: none;" />
+            <span id="pic-placeholder"
+                  style="color: var(--muted); font-size: 12px;">No photo</span>
+          </div>
+          <div style="flex: 1 1 200px;">
+            <input id="pic-input" type="file" accept="image/jpeg,image/png,image/webp"
+                   style="display: block; font-size: 13px;" />
+            <div class="helper">JPEG / PNG / WebP, up to 5 MB. Auto-resized to 512×512 and stored as JPEG.</div>
+            <div class="btn-row" style="margin-top: 10px;">
+              <button type="button" id="pic-upload-btn" class="btn small" disabled>Upload</button>
+              <button type="button" id="pic-delete-btn" class="btn danger small hidden">Remove</button>
+            </div>
+            <p id="pic-status" class="helper" style="margin-top: 8px;"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Basic info -->
+      <section class="card">
+        <h2>Basic info</h2>
+        <div class="row row-2">
+          <div>
+            <label for="f-name">Full name *</label>
+            <input id="f-name" name="name" type="text" required />
+          </div>
+          <div>
+            <label for="f-title">Title</label>
+            <input id="f-title" name="title" type="text" placeholder="e.g. Senior Engineer" />
+          </div>
+        </div>
+        <div class="row row-2" style="margin-top: 12px;">
+          <div>
+            <label for="f-email">Email</label>
+            <input id="f-email" name="email" type="email" />
+          </div>
+          <div>
+            <label for="f-phone">Phone</label>
+            <input id="f-phone" name="phone" type="tel" />
+          </div>
+        </div>
+        <div style="margin-top: 12px;">
+          <label for="f-location">Location</label>
+          <input id="f-location" name="location" type="text" />
+        </div>
+        <div class="row row-3" style="margin-top: 12px;">
+          <div>
+            <label for="f-linkedin">LinkedIn URL</label>
+            <input id="f-linkedin" name="linkedin" type="url" />
+          </div>
+          <div>
+            <label for="f-github">GitHub URL</label>
+            <input id="f-github" name="github" type="url" />
+          </div>
+          <div>
+            <label for="f-website">Website</label>
+            <input id="f-website" name="website" type="url" />
+          </div>
+        </div>
+        <div style="margin-top: 12px;">
+          <label for="f-summary">Summary</label>
+          <textarea id="f-summary" name="summary"
+                    placeholder="2–3 sentences about your experience and focus."></textarea>
+        </div>
+      </section>
+
+      <!-- Skills -->
+      <section class="card">
+        <h2>Skills</h2>
+        <div class="helper" style="margin-bottom: 10px;">
+          Group your skills by category. Each group is one row: a title (key)
+          and a comma-separated list of bullets (values).
+        </div>
+        <div id="skills-list"></div>
+        <div class="btn-row">
+          <button type="button" class="btn secondary small" id="add-skill">+ Add skill group</button>
+        </div>
+      </section>
+
+      <!-- Experience -->
+      <section class="card">
+        <h2>Experience</h2>
+        <div class="helper" style="margin-bottom: 10px;">Most recent role first.</div>
+        <div id="experience-list"></div>
+        <div class="btn-row">
+          <button type="button" class="btn secondary small" id="add-experience">+ Add role</button>
+        </div>
+      </section>
+
+      <!-- Education -->
+      <section class="card">
+        <h2>Education</h2>
+        <div id="education-list"></div>
+        <div class="btn-row">
+          <button type="button" class="btn secondary small" id="add-education">+ Add entry</button>
+        </div>
+      </section>
+
+      <!-- Certifications -->
+      <section class="card">
+        <h2>Certifications</h2>
+        <div id="certifications-list"></div>
+        <div class="btn-row">
+          <button type="button" class="btn secondary small" id="add-certification">+ Add certification</button>
+        </div>
+      </section>
+
+      <!-- Projects -->
+      <section class="card">
+        <h2>Projects</h2>
+        <div class="helper" style="margin-bottom: 10px;">Short, one-line descriptions.</div>
+        <div id="projects-list"></div>
+        <div class="btn-row">
+          <button type="button" class="btn secondary small" id="add-project">+ Add project</button>
+        </div>
+      </section>
+
+      <!-- Hobbies -->
+      <section class="card">
+        <h2>Hobbies</h2>
+        <label for="f-hobbies">Hobbies &amp; interests</label>
+        <input id="f-hobbies" name="hobbies" type="text"
+               placeholder="Comma-separated, e.g. Cycling, Cooking, Piano" />
+        <div class="helper">Stored as a list internally; the matcher can pick up keywords from here too.</div>
+      </section>
+
+      <!-- Save -->
+      <section class="card" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="submit" class="btn" id="save-btn">Save profile</button>
+        <button type="button" class="btn danger small hidden" id="delete-btn">Delete profile</button>
+      </section>
+    </form>
+
+    <p id="loading" style="text-align: center; color: var(--muted);">Loading&hellip;</p>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    // -------- Clerk init --------
+    async function waitForClerk(timeoutMs = 10000) {
+      const deadline = Date.now() + timeoutMs;
+      while (!window.Clerk || !window.__clerkReady) {
+        if (window.__clerkError) throw new Error(window.__clerkError);
+        if (Date.now() > deadline) throw new Error("Clerk load timeout");
+        await new Promise(r => setTimeout(r, 50));
+      }
+      await window.Clerk.load();
+    }
+
+    async function getToken() {
+      if (!window.AUTH_ENABLED) return null;
+      try {
+        if (!window.Clerk) return null;
+        return await window.Clerk.session?.getToken();
+      } catch { return null; }
+    }
+
+    async function api(method, path, body) {
+      const headers = { "Content-Type": "application/json" };
+      const token = await getToken();
+      if (token) headers["Authorization"] = "Bearer " + token;
+      const opts = { method, headers };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const r = await fetch(path, opts);
+      const json = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const err = new Error(json.detail || r.statusText || "Request failed");
+        err.status = r.status;
+        throw err;
+      }
+      return json;
+    }
+
+    // Binary-aware fetch (no JSON assumption). Used for image upload/download.
+    async function fetchAuthed(method, path, body, extraHeaders) {
+      const headers = Object.assign({}, extraHeaders || {});
+      const token = await getToken();
+      if (token) headers["Authorization"] = "Bearer " + token;
+      return fetch(path, { method, headers, body });
+    }
+
+    // -------- Profile picture --------
+    let pendingPictureFile = null;
+
+    function showPicStatus(msg, isError) {
+      const el = $("pic-status");
+      el.textContent = msg || "";
+      el.style.color = isError ? "var(--danger)" : "var(--muted)";
+    }
+
+    function setPreviewFromBlob(blob) {
+      const url = URL.createObjectURL(blob);
+      const img = $("pic-preview");
+      img.src = url;
+      img.style.display = "block";
+      $("pic-placeholder").style.display = "none";
+      $("pic-delete-btn").classList.remove("hidden");
+    }
+
+    function clearPreview() {
+      const img = $("pic-preview");
+      if (img.src && img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+      img.removeAttribute("src");
+      img.style.display = "none";
+      $("pic-placeholder").style.display = "block";
+      $("pic-delete-btn").classList.add("hidden");
+    }
+
+    async function loadExistingPicture() {
+      try {
+        const r = await fetchAuthed("GET", "/api/my-profile-picture");
+        if (!r.ok) return;
+        const blob = await r.blob();
+        setPreviewFromBlob(blob);
+      } catch (e) { /* no picture yet — fine */ }
+    }
+
+    $("pic-input").addEventListener("change", (ev) => {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        showPicStatus("File too large (max 5 MB).", true);
+        ev.target.value = "";
+        return;
+      }
+      pendingPictureFile = file;
+      // Local preview immediately — no round-trip needed.
+      setPreviewFromBlob(file);
+      $("pic-upload-btn").disabled = false;
+      showPicStatus(`Ready to upload (${(file.size / 1024).toFixed(0)} KB).`);
+    });
+
+    $("pic-upload-btn").addEventListener("click", async () => {
+      if (!pendingPictureFile) return;
+      const btn = $("pic-upload-btn");
+      btn.disabled = true; btn.textContent = "Uploading…";
+      try {
+        const fd = new FormData();
+        fd.append("file", pendingPictureFile, pendingPictureFile.name);
+        const r = await fetchAuthed("POST", "/api/my-profile-picture", fd);
+        const json = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(json.detail || r.statusText || "Upload failed");
+        showPicStatus(`Uploaded (${Math.round(json.size_bytes / 1024)} KB, ${json.width}×${json.height}).`);
+        pendingPictureFile = null;
+        $("pic-input").value = "";
+        // Refetch so the preview shows what's actually on disk (post-resize).
+        await loadExistingPicture();
+      } catch (e) {
+        showPicStatus(e.message || "Upload failed", true);
+      } finally {
+        btn.textContent = "Upload";
+        btn.disabled = !pendingPictureFile;
+      }
+    });
+
+    $("pic-delete-btn").addEventListener("click", async () => {
+      if (!confirm("Remove your profile picture?")) return;
+      try {
+        const r = await fetchAuthed("DELETE", "/api/my-profile-picture");
+        if (!r.ok) {
+          const j = await r.json().catch(() => ({}));
+          throw new Error(j.detail || "Failed to delete");
+        }
+        clearPreview();
+        showPicStatus("Removed.");
+      } catch (e) {
+        showPicStatus(e.message || "Delete failed", true);
+      }
+    });
+
+    // -------- Dynamic row builders --------
+    function el(tag, attrs = {}, ...children) {
+      const e = document.createElement(tag);
+      for (const [k, v] of Object.entries(attrs)) {
+        if (k === "class") e.className = v;
+        else if (k === "style") e.setAttribute("style", v);
+        else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+        else e.setAttribute(k, v);
+      }
+      for (const c of children) e.append(c);
+      return e;
+    }
+
+    function removeBtn(onclick) {
+      return el("button", { type: "button", class: "remove-btn", title: "Remove", onclick }, "×");
+    }
+
+    // --- Skills ---
+    function addSkillRow(key = "", values = []) {
+      const sub = el("div", { class: "sub-card" });
+      const remove = removeBtn(() => sub.remove());
+      const keyInput = el("input", { type: "text", placeholder: "Group name, e.g. languages" });
+      keyInput.value = key;
+      const valsInput = el("input", { type: "text", placeholder: "Comma-separated skills, e.g. Python, JavaScript, SQL" });
+      valsInput.value = Array.isArray(values) ? values.join(", ") : String(values || "");
+      sub.append(
+        remove,
+        el("label", {}, "Group"),
+        keyInput,
+        el("label", { style: "margin-top: 10px;" }, "Skills in this group"),
+        valsInput,
+      );
+      sub.dataset.kind = "skill";
+      $("skills-list").appendChild(sub);
+    }
+
+    // --- Experience ---
+    function addExperienceRow(job = {}) {
+      const sub = el("div", { class: "sub-card" });
+      const remove = removeBtn(() => sub.remove());
+      const inputs = {
+        company: el("input", { type: "text", placeholder: "Company" }),
+        role:    el("input", { type: "text", placeholder: "Role" }),
+        start:   el("input", { type: "text", placeholder: "From (e.g. 2022-01 or Jan 2022)" }),
+        end:     el("input", { type: "text", placeholder: "Until (e.g. 2024-06 or Present)" }),
+        location:el("input", { type: "text", placeholder: "Location (optional)" }),
+        highlights: el("textarea", { placeholder: "Highlights — one bullet per line" }),
+        keywords:   el("input", { type: "text", placeholder: "Keywords (comma-separated)" }),
+      };
+      inputs.company.value = job.company || "";
+      inputs.role.value = job.role || "";
+      inputs.start.value = job.start || "";
+      inputs.end.value = job.end || "";
+      inputs.location.value = job.location || "";
+      inputs.highlights.value = Array.isArray(job.highlights) ? job.highlights.join("\n") : "";
+      inputs.keywords.value = Array.isArray(job.keywords) ? job.keywords.join(", ") : "";
+
+      const row1 = el("div", { class: "row row-2" });
+      row1.append(
+        el("div", {}, el("label", {}, "Company"), inputs.company),
+        el("div", {}, el("label", {}, "Role"), inputs.role),
+      );
+      const row2 = el("div", { class: "row row-3", style: "margin-top: 10px;" });
+      row2.append(
+        el("div", {}, el("label", {}, "From"), inputs.start),
+        el("div", {}, el("label", {}, "Until"), inputs.end),
+        el("div", {}, el("label", {}, "Location"), inputs.location),
+      );
+      sub.append(
+        remove,
+        row1,
+        row2,
+        el("label", { style: "margin-top: 10px;" }, "Highlights (one per line)"),
+        inputs.highlights,
+        el("label", { style: "margin-top: 10px;" }, "Keywords"),
+        inputs.keywords,
+      );
+      sub.dataset.kind = "experience";
+      $("experience-list").appendChild(sub);
+    }
+
+    // --- Education ---
+    function addEducationRow(ed = {}) {
+      const sub = el("div", { class: "sub-card" });
+      const remove = removeBtn(() => sub.remove());
+      const inputs = {
+        school: el("input", { type: "text", placeholder: "School / university" }),
+        degree: el("input", { type: "text", placeholder: "Degree" }),
+        start:  el("input", { type: "text", placeholder: "From" }),
+        end:    el("input", { type: "text", placeholder: "Until" }),
+        location: el("input", { type: "text", placeholder: "Location (optional)" }),
+      };
+      inputs.school.value = ed.school || "";
+      inputs.degree.value = ed.degree || "";
+      inputs.start.value  = ed.start || "";
+      inputs.end.value    = ed.end || "";
+      inputs.location.value = ed.location || "";
+
+      const row1 = el("div", { class: "row row-2" });
+      row1.append(
+        el("div", {}, el("label", {}, "School"), inputs.school),
+        el("div", {}, el("label", {}, "Degree"), inputs.degree),
+      );
+      const row2 = el("div", { class: "row row-3", style: "margin-top: 10px;" });
+      row2.append(
+        el("div", {}, el("label", {}, "From"), inputs.start),
+        el("div", {}, el("label", {}, "Until"), inputs.end),
+        el("div", {}, el("label", {}, "Location"), inputs.location),
+      );
+      sub.append(remove, row1, row2);
+      sub.dataset.kind = "education";
+      $("education-list").appendChild(sub);
+    }
+
+    // --- Certifications ---
+    function addCertificationRow(c = {}) {
+      const sub = el("div", { class: "sub-card" });
+      const remove = removeBtn(() => sub.remove());
+      const name   = el("input", { type: "text", placeholder: "Certification name" });
+      const issuer = el("input", { type: "text", placeholder: "Issuer" });
+      const year   = el("input", { type: "text", placeholder: "Year" });
+      name.value = c.name || ""; issuer.value = c.issuer || ""; year.value = c.year || "";
+      const row = el("div", { class: "row row-3" });
+      row.append(
+        el("div", {}, el("label", {}, "Name"), name),
+        el("div", {}, el("label", {}, "Issuer"), issuer),
+        el("div", {}, el("label", {}, "Year"), year),
+      );
+      sub.append(remove, row);
+      sub.dataset.kind = "certification";
+      $("certifications-list").appendChild(sub);
+    }
+
+    // --- Projects ---
+    function addProjectRow(text = "") {
+      const sub = el("div", { class: "sub-card" });
+      const remove = removeBtn(() => sub.remove());
+      const input = el("input", { type: "text", placeholder: "e.g. Kafka-based banking backbone" });
+      input.value = text;
+      sub.append(remove, el("label", {}, "Project"), input);
+      sub.dataset.kind = "project";
+      $("projects-list").appendChild(sub);
+    }
+
+    // -------- Form → profile object --------
+    function buildProfile() {
+      const val = (id) => $(id).value.trim();
+      const profile = {
+        name: val("f-name"),
+        title: val("f-title"),
+        email: val("f-email"),
+        phone: val("f-phone"),
+        location: val("f-location"),
+        linkedin: val("f-linkedin"),
+        github: val("f-github"),
+        website: val("f-website"),
+        summary: val("f-summary"),
+      };
+
+      // Skills → {group: [bullets]}
+      const skills = {};
+      $("skills-list").querySelectorAll(".sub-card").forEach(sub => {
+        const [keyInput, valsInput] = sub.querySelectorAll("input");
+        const k = keyInput.value.trim();
+        if (!k) return;
+        const vals = valsInput.value.split(",").map(s => s.trim()).filter(Boolean);
+        skills[k] = vals;
+      });
+      profile.skills = skills;
+
+      // Experience
+      profile.experience = [];
+      $("experience-list").querySelectorAll(".sub-card").forEach(sub => {
+        const q = (sel, idx = 0) => sub.querySelectorAll(sel)[idx];
+        const inputs = sub.querySelectorAll("input, textarea");
+        // Order matches addExperienceRow: company, role, start, end, location, highlights, keywords
+        const [company, role, start, end, location, highlights, keywords] = inputs;
+        if (!company.value.trim() && !role.value.trim()) return;
+        profile.experience.push({
+          company: company.value.trim(),
+          role:    role.value.trim(),
+          start:   start.value.trim(),
+          end:     end.value.trim(),
+          location: location.value.trim(),
+          highlights: highlights.value.split("\n").map(s => s.trim()).filter(Boolean),
+          keywords:   keywords.value.split(",").map(s => s.trim()).filter(Boolean),
+        });
+      });
+
+      // Education
+      profile.education = [];
+      $("education-list").querySelectorAll(".sub-card").forEach(sub => {
+        const inputs = sub.querySelectorAll("input");
+        const [school, degree, start, end, location] = inputs;
+        if (!school.value.trim() && !degree.value.trim()) return;
+        profile.education.push({
+          school: school.value.trim(),
+          degree: degree.value.trim(),
+          start:  start.value.trim(),
+          end:    end.value.trim(),
+          location: location.value.trim(),
+        });
+      });
+
+      // Certifications
+      profile.certifications = [];
+      $("certifications-list").querySelectorAll(".sub-card").forEach(sub => {
+        const [name, issuer, year] = sub.querySelectorAll("input");
+        if (!name.value.trim()) return;
+        profile.certifications.push({
+          name: name.value.trim(),
+          issuer: issuer.value.trim(),
+          year: year.value.trim(),
+        });
+      });
+
+      // Projects
+      profile.projects = [];
+      $("projects-list").querySelectorAll(".sub-card").forEach(sub => {
+        const v = sub.querySelector("input").value.trim();
+        if (v) profile.projects.push(v);
+      });
+
+      // Hobbies → list of strings
+      profile.hobbies = val("f-hobbies").split(",").map(s => s.trim()).filter(Boolean);
+
+      return profile;
+    }
+
+    // -------- Populate from existing data --------
+    function populate(p) {
+      $("f-name").value = p.name || "";
+      $("f-title").value = p.title || "";
+      $("f-email").value = p.email || "";
+      $("f-phone").value = p.phone || "";
+      $("f-location").value = p.location || "";
+      $("f-linkedin").value = p.linkedin || "";
+      $("f-github").value = p.github || "";
+      $("f-website").value = p.website || "";
+      $("f-summary").value = p.summary || "";
+
+      const skills = p.skills || {};
+      if (typeof skills === "object" && !Array.isArray(skills)) {
+        for (const [k, v] of Object.entries(skills)) addSkillRow(k, v || []);
+      } else {
+        addSkillRow("skills", Array.isArray(skills) ? skills : []);
+      }
+      if (Object.keys(skills).length === 0) addSkillRow();
+
+      const exp = Array.isArray(p.experience) ? p.experience : [];
+      if (exp.length === 0) addExperienceRow();
+      else exp.forEach(addExperienceRow);
+
+      const edu = Array.isArray(p.education) ? p.education : [];
+      if (edu.length === 0) addEducationRow();
+      else edu.forEach(addEducationRow);
+
+      const certs = Array.isArray(p.certifications) ? p.certifications : [];
+      if (certs.length === 0) addCertificationRow();
+      else certs.forEach(addCertificationRow);
+
+      const projects = Array.isArray(p.projects) ? p.projects : [];
+      if (projects.length === 0) addProjectRow();
+      else projects.forEach(item => {
+        if (typeof item === "string") addProjectRow(item);
+        else if (item && item.name) addProjectRow(item.name);
+      });
+
+      const hobbies = p.hobbies;
+      $("f-hobbies").value = Array.isArray(hobbies) ? hobbies.join(", ") : (hobbies || "");
+
+      $("delete-btn").classList.remove("hidden");
+    }
+
+    function emptyForm() {
+      addSkillRow(); addExperienceRow(); addEducationRow();
+      addCertificationRow(); addProjectRow();
+    }
+
+    // -------- Wire up --------
+    $("add-skill").addEventListener("click", () => addSkillRow());
+    $("add-experience").addEventListener("click", () => addExperienceRow());
+    $("add-education").addEventListener("click", () => addEducationRow());
+    $("add-certification").addEventListener("click", () => addCertificationRow());
+    $("add-project").addEventListener("click", () => addProjectRow());
+
+    function showBanner(which, msg) {
+      ["banner-ok", "banner-err"].forEach(id => $(id).classList.add("hidden"));
+      const el = $("banner-" + which);
+      if (msg) el.textContent = msg;
+      el.classList.remove("hidden");
+      setTimeout(() => el.classList.add("hidden"), 4000);
+    }
+
+    $("profile-form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const btn = $("save-btn");
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const body = buildProfile();
+        if (!body.name) throw new Error("Name is required.");
+        await api("POST", "/api/my-profile", body);
+        // Brief visible confirmation before we send the user back to the
+        // main app. Short enough to not feel sluggish; long enough that
+        // the "Saved." banner is actually readable.
+        showBanner("ok", "Saved. Redirecting…");
+        $("delete-btn").classList.remove("hidden");
+        setTimeout(() => { window.location.href = "/"; }, 600);
+      } catch (e) {
+        showBanner("err", e.message || "Failed to save");
+        btn.disabled = false; btn.textContent = "Save profile";
+      }
+    });
+
+    $("delete-btn").addEventListener("click", async () => {
+      if (!confirm("Delete your saved profile? This can't be undone.")) return;
+      try {
+        await api("DELETE", "/api/my-profile");
+        window.location.href = "/";
+      } catch (e) {
+        showBanner("err", e.message || "Failed to delete");
+      }
+    });
+
+    // -------- Bootstrap --------
+    (async () => {
+      try {
+        if (window.AUTH_ENABLED) {
+          await waitForClerk();
+          if (!window.Clerk.user) {
+            $("loading").classList.add("hidden");
+            $("auth-gate").classList.remove("hidden");
+            return;
+          }
+        }
+      } catch (e) {
+        $("loading").classList.add("hidden");
+        $("auth-gate").classList.remove("hidden");
+        return;
+      }
+
+      // Signed in — try to load their profile + picture in parallel
+      try {
+        const p = await api("GET", "/api/my-profile");
+        populate(p);
+      } catch (e) {
+        if (e.status === 404) {
+          emptyForm();   // no profile yet — fresh form
+        } else {
+          showBanner("err", e.message || "Failed to load profile");
+          emptyForm();
+        }
+      }
+      await loadExistingPicture();
+      $("loading").classList.add("hidden");
+      $("profile-form").classList.remove("hidden");
+    })();
+  </script>
+</body>
+</html>

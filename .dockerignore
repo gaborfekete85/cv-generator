@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+ENV/
+
+# IDE / OS cruft
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Generated output — the container creates its own output/ dir
+output/
+*.pdf
+_smoketest*
+_fallback_test*
+_header_*
+
+# Source control
+.git/
+.gitignore
+
+# Docker itself — no need to copy these into the build context
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Misc
+*.log
+*.env
+.env.*

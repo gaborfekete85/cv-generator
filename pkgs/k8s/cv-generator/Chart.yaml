@@ -1,0 +1,14 @@
+apiVersion: v2
+name: cv-generator
+description: A FastAPI-powered CV generator that tailors CVs to job descriptions.
+type: application
+# Bump the chart version when you change anything under templates/ or values.yaml.
+version: 0.1.0
+# appVersion tracks the application's own version.
+appVersion: "0.1.0"
+home: https://github.com/gaborfekete85/cv-generator
+sources:
+  - https://github.com/gaborfekete85/cv-generator
+maintainers:
+  - name: Gabor Fekete
+    email: gabor.fekete85@gmail.com

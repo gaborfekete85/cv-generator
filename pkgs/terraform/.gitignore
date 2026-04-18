@@ -1,0 +1,17 @@
+# Never commit state — contains resource IDs and potentially secrets.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Per-environment variable overrides (usually has account-specific values).
+terraform.tfvars
+*.auto.tfvars
+
+# Provider binaries + plugin cache
+.terraform/
+.terraform.lock.hcl   # optional: commit this if you want pinned provider versions
+# ^ if you'd rather commit the lock, delete the line above.
+
+# Plan outputs
+*.tfplan
+crash.log

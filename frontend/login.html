@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in — CV Generator</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate icon" href="/favicon.ico" />
+  <style>
+    :root {
+      --blue-500: #3b82f6;
+      --pink-500: #ec4899;
+      --pink-600: #db2777;
+      --bg:          #f5f7ff;
+      --bg-grad-a:   #f5f7ff;
+      --bg-grad-b:   #fdf2f8;
+      --text:        #0f172a;
+      --muted:       #64748b;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      line-height: 1.5;
+      background: var(--bg);
+      min-height: 100vh;
+    }
+    body {
+      background:
+        radial-gradient(1200px 600px at 10% -10%, var(--bg-grad-a) 0%, transparent 60%),
+        radial-gradient(1000px 500px at 100% 100%, var(--bg-grad-b) 0%, transparent 55%),
+        var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* IMPORTANT: no vertical centering here. Clerk's sign-in widget
+         changes height between its email / password / code steps, and
+         centering via justify-content causes the whole block to reflow
+         towards the viewport centre — meaning the button you're about to
+         click can visibly jump away under your cursor. Anchoring the
+         content near the top (via padding-top) and letting it grow
+         downward avoids that. */
+      padding: 8vh 16px 40px;
+    }
+
+    /* Wrap is a plain flex container — NO card/panel background. Clerk's
+       own mounted sign-in widget already renders as a card, so we don't
+       want to nest cards and cause visual overflow. */
+    .login-wrap {
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .brand { text-align: center; }
+    .brand .title {
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.75px;
+      background: linear-gradient(90deg, var(--blue-500), var(--pink-500));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      margin: 0 0 6px;
+      line-height: 1.1;
+    }
+    .brand p { color: var(--muted); margin: 0; font-size: 15px; }
+
+    /* Anchor where Clerk's SignIn component mounts. We centre the widget
+       horizontally but do NOT fix a min-height — Clerk adjusts its own
+       card height between steps, and pinning a min-height just means the
+       adjacent "Loading…"/error text stays below the card without a gap.
+       align-items: flex-start keeps the widget pinned to the top of the
+       flex container so the widget's size changes don't reflow its
+       siblings on every step transition. */
+    #sign-in {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .status {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0;
+    }
+    .error {
+      color: #b91c1c;
+      background: rgba(220, 38, 38, 0.08);
+      border: 1px solid rgba(220, 38, 38, 0.2);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      margin: 0;
+    }
+    .back {
+      color: var(--muted);
+      font-size: 13px;
+      text-decoration: none;
+      margin-top: 4px;
+    }
+    .back:hover { color: var(--pink-600); }
+    .hidden { display: none; }
+  </style>
+
+  <!-- Clerk SDK — the publishable key is server-injected. -->
+  <script
+    async
+    crossorigin="anonymous"
+    data-clerk-publishable-key="__CLERK_PUBLISHABLE_KEY__"
+    src="__CLERK_FRONTEND_API__/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+    type="text/javascript"
+    onload="window.__clerkReady=true"
+    onerror="window.__clerkError='Failed to load Clerk SDK'"
+  ></script>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="brand">
+      <h1 class="title">CV Generator</h1>
+      <p>Sign in to continue</p>
+    </div>
+    <div id="sign-in"></div>
+    <p id="status" class="status">Loading sign-in form&hellip;</p>
+    <p id="error" class="error hidden"></p>
+    <a class="back" href="/">&larr; Back to the app (continue anonymously)</a>
+  </div>
+
+  <script>
+    const AUTH_ENABLED = ("__AUTH_ENABLED__" === "true");
+
+    function showError(msg) {
+      document.getElementById('status').classList.add('hidden');
+      const e = document.getElementById('error');
+      e.textContent = msg;
+      e.classList.remove('hidden');
+    }
+
+    if (!AUTH_ENABLED) {
+      showError(
+        "Authentication is not configured on this server. " +
+        "Set CLERK_PUBLISHABLE_KEY to enable Clerk sign-in, or open the app directly."
+      );
+    } else {
+      (async () => {
+        const deadline = Date.now() + 10000;
+        while (!window.Clerk || !window.__clerkReady) {
+          if (window.__clerkError || Date.now() > deadline) {
+            showError(window.__clerkError || "Clerk SDK failed to load (timeout).");
+            return;
+          }
+          await new Promise(r => setTimeout(r, 50));
+        }
+        try {
+          await window.Clerk.load();
+        } catch (e) {
+          showError("Clerk failed to initialise: " + e.message);
+          return;
+        }
+
+        if (window.Clerk.user) {
+          window.location.href = '/';
+          return;
+        }
+
+        document.getElementById('status').classList.add('hidden');
+        window.Clerk.mountSignIn(document.getElementById('sign-in'), {
+          afterSignInUrl: '/',
+          afterSignUpUrl: '/',
+          signUpUrl: '/login',
+        });
+      })();
+    }
+  </script>
+</body>
+</html>

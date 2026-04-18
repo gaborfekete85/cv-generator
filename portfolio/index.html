@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CV Generator — AI-tailored CVs from job descriptions</title>
+  <meta name="description" content="Generate a job-specific CV in seconds. Paste any job description, see how well your profile matches, download a tailored PDF." />
+  <!-- Favicon. The portfolio page is static, so the SVG is expected next to it. -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate icon" href="/favicon.ico" />
+  <style>
+    :root {
+      --blue-400: #60a5fa;
+      --blue-500: #3b82f6;
+      --blue-600: #2563eb;
+      --pink-400: #f472b6;
+      --pink-500: #ec4899;
+      --pink-600: #db2777;
+
+      --bg:          #f5f7ff;
+      --bg-grad-a:   #f5f7ff;
+      --bg-grad-b:   #fdf2f8;
+      --card:        #ffffff;
+      --card-border: #e2e8f0;
+      --text:        #0f172a;
+      --muted:       #64748b;
+      --primary:     var(--blue-500);
+      --accent:      var(--pink-500);
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text);
+      line-height: 1.6;
+      background: var(--bg);
+    }
+    body {
+      background:
+        radial-gradient(1200px 600px at 10% -10%, var(--bg-grad-a) 0%, transparent 60%),
+        radial-gradient(1000px 500px at 100% 100%, var(--bg-grad-b) 0%, transparent 55%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    /* --- Top bar with the CTA link --- */
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: saturate(180%) blur(12px);
+      background: rgba(255, 255, 255, 0.7);
+      border-bottom: 1px solid var(--card-border);
+    }
+    .topbar-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .brand {
+      font-weight: 700;
+      font-size: 17px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+      text-decoration: none;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 10px;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+      transition: filter 0.15s, transform 0.05s;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: translateY(1px); }
+    .btn svg { width: 14px; height: 14px; }
+
+    /* --- Hero --- */
+    .hero {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 90px 24px 40px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 56px;
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+      margin: 0 0 16px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+    .hero .tagline {
+      font-size: 20px;
+      color: var(--muted);
+      max-width: 620px;
+      margin: 0 auto 32px;
+    }
+    .hero-cta {
+      display: inline-flex;
+      align-items: center; gap: 10px;
+      padding: 14px 28px;
+      font-size: 16px;
+    }
+
+    /* --- Feature cards --- */
+    .features {
+      max-width: 1000px;
+      margin: 40px auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .feature {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .feature h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      color: var(--text);
+    }
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .feature .num {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 30px; height: 30px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    /* --- How it works strip --- */
+    .howitworks {
+      max-width: 880px;
+      margin: 30px auto 60px;
+      padding: 0 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .howitworks h2 {
+      color: var(--text);
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+
+    /* --- Footer --- */
+    footer {
+      max-width: 1000px;
+      margin: 60px auto 40px;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--card-border);
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+    footer a:hover { color: var(--accent); }
+
+    @media (max-width: 700px) {
+      .hero h1 { font-size: 36px; }
+      .hero .tagline { font-size: 17px; }
+      .features { grid-template-columns: 1fr; }
+      .topbar-inner { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="#" class="brand">CV Generator</a>
+      <a href="https://cv.rewura.com" class="btn" target="_blank" rel="noopener">
+        Launch the app
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M7 17L17 7M17 7H8M17 7v9"/>
+        </svg>
+      </a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <h1>Tailored CVs,<br/>matched to the job.</h1>
+    <p class="tagline">
+      Paste any job description. The app extracts the skills that matter, scores
+      how well your profile matches, and downloads a PDF that leans into the
+      overlap — in about 10 seconds.
+    </p>
+    <a href="https://cv.rewura.com" class="btn hero-cta" target="_blank" rel="noopener">
+      Try it live at cv.rewura.com
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M13 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </section>
+
+  <section class="features">
+    <div class="feature">
+      <div class="num">1</div>
+      <h3>Paste a job description</h3>
+      <p>Drop in the text from any LinkedIn / ATS posting. No account, no import dance — just paste.</p>
+    </div>
+    <div class="feature">
+      <div class="num">2</div>
+      <h3>See your match score</h3>
+      <p>The matcher extracts skills and weighs required-vs-nice-to-have. You get a % score plus a breakdown of matched and missing skills.</p>
+    </div>
+    <div class="feature">
+      <div class="num">3</div>
+      <h3>Download a tailored PDF</h3>
+      <p>The CV template reorders your skills to put the matches first, adds a QR to your portfolio URL, and exports a clean single-page PDF.</p>
+    </div>
+  </section>
+
+  <section class="howitworks">
+    <h2>Built on FastAPI, Helm, and WeasyPrint</h2>
+    <p>
+      Python backend, WeasyPrint-rendered PDFs, Markdown-driven CV template,
+      and a Helm chart for Kubernetes deployment. Runs equally well locally,
+      on AWS App Runner, or on a managed Kubernetes cluster.
+    </p>
+  </section>
+
+  <footer>
+    Built by <a href="https://feketegabor.com/profile" target="_blank" rel="noopener">Gabor Fekete</a>
+    &nbsp;·&nbsp;
+    <a href="https://cv.rewura.com" target="_blank" rel="noopener">Live app</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/gaborfekete85" target="_blank" rel="noopener">GitHub</a>
+  </footer>
+</body>
+</html>

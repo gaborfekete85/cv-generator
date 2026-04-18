@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Cool blue → cool pink brand gradient, same palette as the app. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Document body with a subtle folded top-right corner to read as "CV". -->
+  <path d="M12 6 h32 l8 8 v44 a4 4 0 0 1 -4 4 H12 a4 4 0 0 1 -4 -4 V10 a4 4 0 0 1 4 -4 z"
+        fill="url(#g)"/>
+  <!-- Fold triangle on the corner -->
+  <path d="M44 6 v8 h8 z" fill="#ffffff" fill-opacity="0.3"/>
+
+  <!-- Person avatar on the CV: head + shoulders -->
+  <circle cx="32" cy="24" r="5" fill="#ffffff"/>
+  <path d="M22 37 q0-7 10-7 q10 0 10 7 z" fill="#ffffff"/>
+
+  <!-- Three stylised "text lines" below the avatar -->
+  <rect x="18" y="44" width="28" height="2.4" rx="1.2" fill="#ffffff" fill-opacity="0.85"/>
+  <rect x="18" y="49" width="22" height="2.4" rx="1.2" fill="#ffffff" fill-opacity="0.65"/>
+  <rect x="18" y="54" width="26" height="2.4" rx="1.2" fill="#ffffff" fill-opacity="0.5"/>
+</svg>

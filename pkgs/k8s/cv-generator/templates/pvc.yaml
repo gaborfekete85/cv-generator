@@ -1,0 +1,35 @@
+{{- /*
+  PersistentVolumeClaim for /app/data.
+
+  Rendered ONLY when:
+    * persistence.enabled   is true, AND
+    * persistence.existingClaim is empty (i.e. we're owning the PVC lifecycle).
+
+  When `persistence.retainOnUninstall` is true we tag the PVC with
+  `helm.sh/resource-policy: keep`. Helm honours this annotation and will
+  leave the PVC in place during `helm uninstall`, so the underlying
+  volume + data survive. On the next install point `persistence.existingClaim`
+  at this PVC so Helm reuses it instead of trying to re-create it.
+*/ -}}
+{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "cv-generator.fullname" . }}-data
+  labels: {{- include "cv-generator.labels" . | nindent 4 }}
+  {{- if .Values.persistence.retainOnUninstall }}
+  annotations:
+    "helm.sh/resource-policy": keep
+  {{- end }}
+spec:
+  accessModes:
+    {{- range .Values.persistence.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | quote }}
+  {{- if .Values.persistence.storageClass }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+  {{- end }}
+{{- end }}

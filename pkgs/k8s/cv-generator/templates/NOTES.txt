@@ -1,0 +1,88 @@
+
+Thanks for installing {{ .Chart.Name }}. Resources live in namespace:
+  {{ .Release.Namespace }}
+
+{{- if .Values.persistence.enabled }}
+
+Persistent data:
+  /app/data is mounted from PVC "{{ .Values.persistence.existingClaim | default (printf "%s-data" (include "cv-generator.fullname" .)) }}"
+  ({{ .Values.persistence.size }}, retainOnUninstall = {{ .Values.persistence.retainOnUninstall }})
+
+  * User-created profiles live at data/profiles/<user_id>.json
+  * Uploaded profile pictures live at data/profile_pictures/<user_id>.jpg
+  * Generated PDFs live at data/output/... (not currently in /data, but
+    if you want those persistent too, point CV output at /app/data/output).
+
+  {{- if .Values.persistence.retainOnUninstall }}
+  This PVC has `helm.sh/resource-policy: keep` so `helm uninstall` leaves
+  it in place. Before you `helm upgrade --install` a new release name
+  OVER this PVC, set `persistence.existingClaim={{ .Values.persistence.existingClaim | default (printf "%s-data" (include "cv-generator.fullname" .)) }}`
+  so the chart reuses the existing claim instead of trying to create
+  a new one.
+  {{- end }}
+{{- end }}
+
+{{- if .Values.clerk.enabled }}
+
+Clerk authentication is ENABLED — the app will redirect unauthenticated
+requests to /login. Make sure the Secret `{{ .Values.clerk.existingSecret }}`
+exists in namespace `{{ .Release.Namespace }}` with the expected keys:
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ .Values.clerk.existingSecret }} -o jsonpath='{.data}' | jq 'keys'
+  # expect: ["CLERK_PUBLISHABLE_KEY", "CLERK_SECRET_KEY"]
+
+If you haven't created it yet:
+
+  kubectl -n {{ .Release.Namespace }} create secret generic {{ .Values.clerk.existingSecret }} \
+    --from-literal=CLERK_PUBLISHABLE_KEY='pk_test_...' \
+    --from-literal=CLERK_SECRET_KEY='sk_test_...'
+
+Then restart the pods so they pick up the env vars:
+
+  kubectl -n {{ .Release.Namespace }} rollout restart deploy/{{ include "cv-generator.fullname" . }}
+{{- end }}
+
+{{- if eq .Values.service.type "LoadBalancer" }}
+
+Service is a LoadBalancer — your cloud provider is provisioning a public IP.
+Fetch it with:
+
+  kubectl -n {{ .Release.Namespace }} get svc {{ include "cv-generator.fullname" . }} \
+    -o jsonpath='{.status.loadBalancer.ingress[0].ip}{"\n"}'
+
+Or the broader view (watch for EXTERNAL-IP to populate, can take 30-120s):
+
+  kubectl -n {{ .Release.Namespace }} get svc {{ include "cv-generator.fullname" . }} -w
+
+Then open:  http://<EXTERNAL-IP>/
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+The app will be reachable at:
+  {{- if .Values.ingress.tls.enabled }}
+  https://{{ .Values.ingress.host }}
+  {{- else }}
+  http://{{ .Values.ingress.host }}
+  {{- end }}
+
+Make sure your DNS has an A/CNAME record for {{ .Values.ingress.host }}
+pointing at your ingress controller's external IP/hostname.
+{{- else }}
+
+Ingress is disabled. To reach the service, port-forward it locally:
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "cv-generator.fullname" . }} 8000:{{ .Values.service.port }}
+
+Then open http://127.0.0.1:8000
+{{- end }}
+
+Useful commands:
+
+  kubectl -n {{ .Release.Namespace }} get pods,svc,ingress -l app.kubernetes.io/instance={{ .Release.Name }}
+  kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} --tail=100 -f
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "cv-generator.fullname" . }}
+
+Upgrade after pushing a new image with the same :latest tag:
+
+  kubectl -n {{ .Release.Namespace }} rollout restart deploy/{{ include "cv-generator.fullname" . }}

@@ -1,0 +1,36 @@
+# Core web + template stack (pure-Python, no system deps required)
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+jinja2>=3.1
+markdown>=3.6
+pyyaml>=6.0
+httpx>=0.27
+beautifulsoup4>=4.12
+
+# Clerk auth — verifies session JWTs against Clerk's JWKS endpoint.
+# [crypto] pulls in the RSA signature backend; `cryptography` is already
+# present transitively via xhtml2pdf, so no extra C deps here.
+pyjwt[crypto]>=2.8
+
+# Auto-load .env on startup. Without this, plain `uvicorn backend.main:app`
+# ignores the file and CLERK_* shows up unset, which shows up as
+# "Authentication is not configured" on the login page.
+python-dotenv>=1.0
+
+# Required by FastAPI's UploadFile / multipart form parsing — used by the
+# profile-picture upload endpoint.
+python-multipart>=0.0.9
+
+# QR code + user icon image generation (Pillow is pulled in by qrcode[pil])
+qrcode[pil]>=7.4
+
+# PDF rendering — pure-Python fallback. Works everywhere pip works.
+xhtml2pdf>=0.2.15
+
+# PDF rendering — preferred backend. Requires Pango/Cairo system libraries.
+# On macOS:   brew install pango
+# On Ubuntu:  sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
+# If you can't install the system libs, the app will fall back to xhtml2pdf
+# automatically — you don't need to uninstall weasyprint.
+weasyprint>=62.0; sys_platform != "win32"

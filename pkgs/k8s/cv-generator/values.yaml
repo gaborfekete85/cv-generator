@@ -1,0 +1,197 @@
+# Default values for cv-generator. Override via --set or -f <custom.yaml>.
+
+replicaCount: 1
+
+image:
+  repository: gabendockerzone/cv-generator
+  tag: latest
+  # "Always" so the :latest tag is re-pulled on every pod start.
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# --- Service --------------------------------------------------------------
+# `LoadBalancer` gets the cloud provider to provision a public IP so you can
+# reach the app directly at http://<EXTERNAL-IP>/ while testing, without
+# needing DNS or a working Ingress. Set to `ClusterIP` once the Ingress is
+# happy and you don't want the extra LB charges (most cloud providers bill
+# ~$5-20/month per LB).
+service:
+  type: LoadBalancer
+  port: 80          # external (load-balanced) port
+  targetPort: 8000  # container port (matches the Dockerfile CMD)
+  # Cloud-provider-specific annotations. Examples:
+  #   AWS NLB instead of classic ELB:
+  #     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  #   DigitalOcean force L4:
+  #     service.beta.kubernetes.io/do-loadbalancer-protocol: "tcp"
+  annotations: {}
+  # Keep client source IPs (only works with LoadBalancer).
+  # externalTrafficPolicy: Local
+
+# --- Ingress --------------------------------------------------------------
+# Assumes nginx-ingress-controller is installed in the cluster.
+# Flip `tls.enabled` off if you don't have cert-manager or a TLS secret
+# already provisioned.
+ingress:
+  enabled: true
+  className: nginx
+  host: cv.rewura.com
+  path: /
+  pathType: Prefix
+  annotations:
+    # Lets' Encrypt via cert-manager. Adjust the cluster-issuer name if
+    # yours is called something other than "letsencrypt-prod".
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Allow large uploads / long PDF renders.
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+  tls:
+    enabled: true
+    secretName: cv-rewura-com-tls
+
+# --- Container env --------------------------------------------------------
+env:
+  # "auto" → WeasyPrint if the system libs are present (they are, in the
+  # baked image), else fall back to xhtml2pdf.
+  CV_PDF_BACKEND: auto
+
+# Extra env vars as a list (for Secret/ConfigMap references etc.).
+extraEnv: []
+  # - name: SOME_SECRET
+  #   valueFrom:
+  #     secretKeyRef: { name: my-secret, key: some-key }
+
+# --- Persistent /data storage --------------------------------------------
+# Mounts a PersistentVolumeClaim at /app/data so user-created profiles
+# (data/profiles/<user_id>.json), uploaded profile pictures
+# (data/profile_pictures/<user_id>.jpg) and generated files survive pod
+# restarts and rescheduling.
+#
+# `retainOnUninstall: true` annotates the PVC with `helm.sh/resource-policy:
+# keep`, so running `helm uninstall` leaves the PVC (and the underlying
+# volume / cloud disk) in place. On the NEXT install you should point
+# `existingClaim` at the surviving PVC name so the chart re-uses it
+# instead of trying to create a fresh one.
+#
+# On first boot — and on every pod start — an init container copies the
+# image's bundled /app/data tree into the mount using `cp -n` (no-clobber),
+# so demo profiles and the CV template are always present, and user-created
+# files are NEVER overwritten.
+persistence:
+  enabled: true
+
+  # Name of an EXISTING PVC to mount. If set, the chart does NOT create a
+  # PVC. Typical flow:
+  #   * first-ever install: leave empty — chart creates <release>-data
+  #   * after `helm uninstall`: set this to the surviving PVC name so the
+  #     next install reuses it (the PVC won't be recreated).
+  existingClaim: ""
+
+  # Used when `existingClaim` is empty.
+  size: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  # "" = cluster default; set to e.g. "gp3" / "standard" / "hostpath"
+  # depending on your cluster.
+  storageClass: "do-block-storage"
+
+  # Protect the volume across `helm uninstall`. Adds the Helm annotation
+  # helm.sh/resource-policy: keep. Strongly recommended for production.
+  retainOnUninstall: true
+
+  # Mount path inside the container. MUST match the app's DATA_DIR (which
+  # is derived from the repo layout via `backend/main.py`).
+  mountPath: /app/data
+
+  # Seed the volume with the image's bundled /app/data contents (CV
+  # template + demo profiles) on every pod start. cp -n means user data
+  # is never overwritten — only missing files are added.
+  seedDemoData: true
+
+
+# --- Clerk authentication -------------------------------------------------
+# Enables the Clerk sign-in flow. When `enabled: true` the Deployment pulls
+# CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY from a Kubernetes Secret and
+# injects them as env vars into the container. When `false`, the app runs
+# without authentication (any user can hit the API).
+#
+# Create the Secret manually BEFORE installing the chart — we deliberately
+# don't ship keys in values.yaml so they can't accidentally end up in git:
+#
+#   kubectl -n cv-generator create secret generic cv-generator-clerk \
+#     --from-literal=CLERK_PUBLISHABLE_KEY='pk_test_...' \
+#     --from-literal=CLERK_SECRET_KEY='sk_test_...'
+clerk:
+  enabled: true
+  # Name of the Secret to read the keys from. Must live in the release
+  # namespace and contain keys `CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`.
+  existingSecret: cv-generator-clerk
+
+# --- Resources ------------------------------------------------------------
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# --- Health checks (match the /health endpoint in backend/main.py) --------
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# --- Autoscaling ----------------------------------------------------------
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# --- Security context -----------------------------------------------------
+# WeasyPrint + Pillow don't need root, but the Dockerfile runs as root by
+# default. Toggle these if you harden the image to run as a non-root user.
+podSecurityContext: {}
+  # runAsUser: 1000
+  # runAsGroup: 1000
+  # fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false  # /app/output is written at runtime
+  runAsNonRoot: false
+  capabilities:
+    drop: ["ALL"]
+
+# --- Service account ------------------------------------------------------
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# --- Scheduling -----------------------------------------------------------
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podAnnotations: {}
+podLabels: {}

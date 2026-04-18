@@ -1,0 +1,37 @@
+# docker compose up
+#
+# Mounts data/ and output/ from the host so you can edit your profile and
+# CV template without rebuilding the image, and so generated PDFs show up
+# in the host's output/ folder.
+
+services:
+  cv-generator:
+    build: .
+    image: cv-generator:latest
+    container_name: cv-generator
+    ports:
+      - "8000:8000"
+    volumes:
+      # Edit data/profile.md and data/cv_template.md from the host — changes
+      # are picked up on the next /api/generate call (no rebuild needed).
+      - ./data:/app/data
+      # Generated CVs (PDF + .md) persist to the host so you can inspect them
+      # and they survive container restarts.
+      - ./output:/app/output
+    environment:
+      # auto -> WeasyPrint if available (it is, in this image), else xhtml2pdf.
+      # Set to "xhtml2pdf" to force the pure-Python backend.
+      CV_PDF_BACKEND: auto
+      # Clerk auth — read from .env (docker-compose auto-loads ./.env).
+      # Leave empty to disable auth and open up the app.
+      CLERK_PUBLISHABLE_KEY: "${CLERK_PUBLISHABLE_KEY:-}"
+      CLERK_SECRET_KEY: "${CLERK_SECRET_KEY:-}"
+    restart: unless-stopped
+    # Reuses the HEALTHCHECK baked into the image; exposed here so compose
+    # shows the container's health status in `docker ps` / `docker compose ps`.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request, sys; r=urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3); sys.exit(0 if r.status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,0 +1,159 @@
+# =============================================================================
+# Secrets — NEVER commit these
+# =============================================================================
+# Environment files with credentials, API keys, etc. `.env.example` is
+# explicitly whitelisted below so the sample stays checked in.
+.env
+.env.*
+!.env.example
+
+# Common secret file names
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+credentials.json
+secrets.json
+*service-account*.json
+*service_account*.json
+
+# AWS / cloud credentials someone might drop in the repo by accident
+.aws/
+aws-credentials
+*.kubeconfig
+
+# =============================================================================
+# User-generated runtime data (not source code — regenerated per install)
+# =============================================================================
+# Per-user JSON profiles created via the /profile form (keyed by Clerk user id,
+# always starts with `user_`). The bundled demo `*.md` profiles in the same
+# directory ARE source code and stay tracked — re-whitelisted below.
+data/profiles/*.json
+
+# Per-user uploaded profile pictures
+data/profile_pictures/*
+!data/profile_pictures/.gitkeep
+
+# Generated CVs (markdown + PDF). Ignore everything INSIDE output/ but
+# keep the directory itself in git via the .gitkeep tracked below.
+output/*
+!output/.gitkeep
+
+# Bundled demo profiles and the CV template ARE source code — never ignore.
+!data/profiles/*.md
+!data/profile.md
+!data/cv_template.md
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Packaging + build artifacts
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Testing / linting caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+nosetests.xml
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# =============================================================================
+# Node / web tooling (in case the frontend gets a build step later)
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+.yarn/cache
+.yarn/install-state.gz
+
+# =============================================================================
+# Terraform — local state, variables, plan output
+# =============================================================================
+# These are also ignored in pkgs/terraform/.gitignore; duplicated here as a
+# safety net so secrets don't land in the root if someone runs tf from
+# the project root.
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfplan
+crash.log
+crash.*.log
+terraform.tfvars
+*.auto.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# =============================================================================
+# Helm — packaged charts + environment-specific overrides
+# =============================================================================
+# Ship only the base values.yaml. Anything like `values-prod.yaml` belongs
+# in a secure store, not in the public repo.
+*.tgz
+pkgs/k8s/cv-generator/values-*.yaml
+!pkgs/k8s/cv-generator/values.yaml
+
+# =============================================================================
+# IDE / editor config
+# =============================================================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+*.orig
+*~
+
+# =============================================================================
+# OS cruft
+# =============================================================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# =============================================================================
+# Logs
+# =============================================================================
+*.log
+
+# =============================================================================
+# Misc / scratch
+# =============================================================================
+*.pid
+*.sock
+tmp/
+scratch/

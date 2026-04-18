@@ -1,0 +1,25 @@
+# Copy to `terraform.tfvars` and edit to override any of the defaults in
+# variables.tf. All values are optional — if you're happy with the defaults,
+# you don't need this file at all.
+
+# aws_region     = "eu-central-1"
+# service_name   = "cv-generator"
+# image_tag      = "latest"
+# container_port = 8000
+# cpu            = "0.25 vCPU"
+# memory         = "0.5 GB"
+# auto_deploy    = true
+
+# Flip to false for the first-ever apply (ECR + IAM only), push the image,
+# then flip back to true and apply again.
+# create_service = true
+
+# environment_variables = {
+#   CV_PDF_BACKEND = "auto"
+# }
+
+# tags = {
+#   Project = "cv-generator"
+#   Owner   = "gabor.fekete"
+#   Env     = "prod"
+# }
