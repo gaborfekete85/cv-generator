@@ -39,8 +39,11 @@ CV_CSS_WEASYPRINT = """
 @page { size: A4; margin: 14mm 16mm 18mm 16mm; }
 html { font-family: "Helvetica", "Arial", sans-serif; font-size: 10.5pt; color: #1f2937; }
 h1 { font-size: 22pt; margin: 0 0 2pt 0; color: #111827; }
-h2 { font-size: 12.5pt; margin: 14pt 0 4pt 0; color: #111827;
-     border-bottom: 1px solid #d1d5db; padding-bottom: 2pt;
+/* Section titles — blue for a more modern, "trendy" feel while staying
+   print-friendly. The underline picks up a lighter blue so it reads as
+   an accent, not a hard rule. */
+h2 { font-size: 12.5pt; margin: 14pt 0 4pt 0; color: #1e3a8a;
+     border-bottom: 1.5px solid #60a5fa; padding-bottom: 2pt;
      text-transform: uppercase; letter-spacing: 0.6pt; }
 h3 { font-size: 11pt; margin: 8pt 0 1pt 0; color: #111827; }
 p  { margin: 3pt 0; line-height: 1.35; }
@@ -60,6 +63,33 @@ table.header-table td { border: 0; padding: 0; vertical-align: middle; }
 .cv-subtitle { font-size: 11.5pt; color: #475569; margin-top: 3pt; font-weight: 600; }
 .cv-contact { font-size: 10pt; color: #475569; margin-top: 3pt; }
 .cv-contact a { color: #2563eb; }
+
+/* QR code label — WeasyPrint gets the 3-part thought-bubble trail
+   overlay. The fallback label (`.qr-badge-below`) is hidden in this
+   backend; it's only used by xhtml2pdf. */
+.qr-wrap { position: relative; display: inline-block; }
+.qr-bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #ec4899);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.18);
+}
+.qr-bubble-sm { width: 4pt; height: 4pt; top: -1pt; right: 6pt; }
+.qr-bubble-md { width: 7pt; height: 7pt; top: -8pt; right: -4pt; }
+.qr-badge-overlay {
+  position: absolute;
+  top: -18pt;
+  right: -22pt;
+  padding: 2.5pt 10pt;
+  font-size: 7.5pt;
+  font-weight: 700;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6, #ec4899);
+  border-radius: 999px;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.22);
+  white-space: nowrap;
+}
+.qr-badge-below { display: none; }
 """
 
 # xhtml2pdf has a simpler CSS engine (no letter-spacing, no text-transform,
@@ -68,8 +98,10 @@ CV_CSS_XHTML2PDF = """
 @page { size: A4; margin: 14mm 16mm 18mm 16mm; }
 body { font-family: Helvetica; font-size: 10.5pt; color: #1f2937; }
 h1 { font-size: 22pt; margin-top: 0; margin-bottom: 2pt; color: #111827; }
-h2 { font-size: 11.5pt; margin-top: 14pt; margin-bottom: 4pt; color: #111827;
-     border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: #d1d5db;
+/* Section titles in blue. xhtml2pdf prefers explicit per-side border
+   declarations over the shorthand. */
+h2 { font-size: 11.5pt; margin-top: 14pt; margin-bottom: 4pt; color: #1e3a8a;
+     border-bottom-width: 1.5px; border-bottom-style: solid; border-bottom-color: #60a5fa;
      padding-bottom: 2pt; }
 h3 { font-size: 11pt; margin-top: 8pt; margin-bottom: 1pt; color: #111827; }
 p  { margin-top: 3pt; margin-bottom: 3pt; line-height: 1.35; }
@@ -88,6 +120,23 @@ table.header-table { width: 100%; margin-bottom: 4pt; }
 .cv-subtitle { font-size: 11.5pt; color: #475569; margin-top: 3pt; font-weight: bold; }
 .cv-contact { font-size: 10pt; color: #475569; margin-top: 3pt; }
 .cv-contact a { color: #2563eb; }
+
+/* xhtml2pdf's CSS engine doesn't support absolute positioning reliably
+   inside table cells. We therefore hide the WeasyPrint-only overlay
+   (trail dots + floating pill) and render a centred pill UNDER the QR
+   via the fallback row in the nested table inside the template. */
+.qr-bubble { display: none; }
+.qr-badge-overlay { display: none; }
+.qr-badge-below {
+  display: inline-block;
+  margin-top: 4pt;
+  padding-top: 2pt; padding-bottom: 2pt;
+  padding-left: 9pt; padding-right: 9pt;
+  font-size: 8pt;
+  font-weight: bold;
+  color: #ffffff;
+  background-color: #ec4899;
+}
 """
 
 
@@ -189,30 +238,56 @@ def _order_experience_by_match(profile: dict, match: MatchResult) -> list[dict]:
 
 
 def _highlight_skills(profile: dict, match: MatchResult) -> dict[str, list[str]]:
-    """Return skill groups with:
-      * matched skills ordered first within each group, and
-      * groups with more matched skills placed first overall.
+    """Return skill groups filtered to ONLY the skills that overlap with the
+    job description.
 
-    So a group like 'Cloud DevOps' that overlaps heavily with the JD gets
-    rendered above a group that doesn't.
+    Why filter instead of reorder? A tailored CV reads tighter when the
+    Skills block shows exactly the overlap with the role — any extra
+    skills are noise a recruiter has to scan past. Groups that end up
+    empty are dropped from the output so the template can skip the
+    section entirely.
+
+    Matching is done via the match result's `matched_skills` set (which
+    comes from either the keyword matcher or the embedding matcher —
+    whichever strategy the caller chose).
     """
     matched_set = {m.lower() for m in match.matched_skills}
     skills = profile.get("skills") or {}
 
     if isinstance(skills, list):
-        items = list(skills)
-        items.sort(key=lambda s: (s.lower() not in matched_set, s.lower()))
-        return {"skills": [_display_skill(s) for s in items]}
+        items = [s for s in skills if str(s).lower() in matched_set]
+        items.sort(key=lambda s: str(s).lower())
+        return {"skills": [_display_skill(s) for s in items]} if items else {}
 
-    ordered: list[tuple[str, list[str], int]] = []
+    out: dict[str, list[str]] = {}
     for group, items in skills.items():
-        items = list(items or [])
-        items.sort(key=lambda s: (str(s).lower() not in matched_set, str(s).lower()))
-        match_count = sum(1 for s in items if str(s).lower() in matched_set)
-        ordered.append((group, [_display_skill(s) for s in items], match_count))
-    # Groups with more matches bubble to the top; stable ordering otherwise.
-    ordered.sort(key=lambda g: -g[2])
-    return {g: items for g, items, _ in ordered}
+        matched_in_group = [
+            s for s in (items or [])
+            if str(s).lower() in matched_set
+        ]
+        if not matched_in_group:
+            continue
+        matched_in_group.sort(key=lambda s: str(s).lower())
+        out[group] = [_display_skill(s) for s in matched_in_group]
+    return out
+
+
+def _qr_label(url: str | None) -> str:
+    """Derive a short caption for the QR code bubble from the target URL.
+
+    Returns "" if there's no URL — the template renders nothing in that case.
+    We keep the detection dumb-but-obvious: anything whose host contains
+    `linkedin.com` is labelled "LinkedIn", otherwise it's "Portfolio".
+    Useful special cases (GitHub, personal site) can be added here later.
+    """
+    if not url or not url.strip():
+        return ""
+    u = url.lower()
+    if "linkedin.com" in u:
+        return "LinkedIn"
+    if "github.com" in u:
+        return "GitHub"
+    return "Portfolio"
 
 
 def _tailored_summary(profile: dict, match: MatchResult, job_title: str | None) -> str:
@@ -303,6 +378,7 @@ def render_markdown(
         highlighted_skills=_highlight_skills(profile, match),
         ordered_experience=_order_experience_by_match(profile, match),
         qr_data_uri=qr_data_uri,
+        qr_label=_qr_label(qr_target_url),
         photo_data_uri=photo_data_uri,
     )
 

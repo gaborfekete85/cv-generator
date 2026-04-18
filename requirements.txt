@@ -22,6 +22,14 @@ python-dotenv>=1.0
 # profile-picture upload endpoint.
 python-multipart>=0.0.9
 
+# Optional — enables the "Semantic similarity" match strategy.
+# Uses ONNX-runtime + a ~22MB sentence-embedding model (downloaded on first
+# use). Adds roughly 100MB to the installed footprint. Leave commented out
+# if you only need the default keyword matcher; the API gracefully
+# advertises the strategy as "unavailable" when this isn't installed.
+fastembed>=0.3
+
+
 # QR code + user icon image generation (Pillow is pulled in by qrcode[pil])
 qrcode[pil]>=7.4
 

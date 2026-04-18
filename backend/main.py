@@ -28,7 +28,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import auth, cv_builder, jd_fetcher, matcher, profile_loader
+from . import auth, cv_builder, jd_fetcher, matcher, matcher_embedding, profile_loader
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -100,6 +100,7 @@ class AnalyzeRequest(BaseModel):
     job_title: Optional[str] = None
     extra_keywords: list[str] = Field(default_factory=list)
     profile_id: Optional[str] = None
+    strategy: Optional[str] = "keyword"   # "keyword" (default) | "embedding"
 
 
 class AnalyzeResponse(BaseModel):
@@ -118,6 +119,7 @@ class GenerateRequest(BaseModel):
     extra_keywords: list[str] = Field(default_factory=list)
     qr_target_url: Optional[str] = None
     profile_id: Optional[str] = None
+    strategy: Optional[str] = "keyword"
 
 
 class GenerateResponse(BaseModel):
@@ -429,14 +431,69 @@ def fetch_jd(body: FetchJDRequest) -> FetchJDResponse:
     return FetchJDResponse(text=text, detected_title=title)
 
 
+def _run_matcher(
+    profile: dict,
+    job_description: str,
+    extra_keywords: list[str],
+    strategy: Optional[str],
+):
+    """Dispatch to the right matcher based on `strategy`.
+
+    Unknown or unavailable strategies fall back to the keyword matcher
+    with a helpful 400 so the frontend can show the real reason.
+    """
+    s = (strategy or "keyword").lower().strip()
+    if s == "embedding":
+        if not matcher_embedding.is_available():
+            raise HTTPException(
+                status_code=503,
+                detail="Embedding strategy is not available on this server. "
+                       "Install `fastembed` (pip install fastembed) to enable it.",
+            )
+        return matcher_embedding.match(
+            profile, job_description, extra_keywords=extra_keywords
+        )
+    if s not in ("keyword", ""):
+        raise HTTPException(status_code=400, detail=f"Unknown strategy: {s!r}")
+    return matcher.match(
+        profile, job_description, extra_keywords=extra_keywords
+    )
+
+
+@app.get("/api/strategies")
+def list_strategies() -> list[dict]:
+    """Advertise which match strategies this server can run, so the UI
+    can grey-out ones whose dependencies aren't installed."""
+    return [
+        {
+            "id": "keyword",
+            "name": "Keyword match",
+            "description": (
+                "Deterministic vocabulary-based match. Fast, offline, "
+                "predictable. Default."
+            ),
+            "available": True,
+        },
+        {
+            "id": "embedding",
+            "name": "Semantic similarity",
+            "description": (
+                "Neural sentence embeddings + cosine similarity. Catches "
+                "synonyms and paraphrasing but needs the fastembed package."
+            ),
+            "available": matcher_embedding.is_available(),
+        },
+    ]
+
+
 @app.post("/api/analyze", response_model=AnalyzeResponse)
 def analyze(
     body: AnalyzeRequest,
     authorization: Optional[str] = Header(None),
 ) -> AnalyzeResponse:
     profile = _load_profile_or_400(body.profile_id, authorization)
-    result = matcher.match(
-        profile, body.job_description, extra_keywords=body.extra_keywords
+    result = _run_matcher(
+        profile, body.job_description, body.extra_keywords, body.strategy,
     )
     return AnalyzeResponse(**asdict(result))
 
@@ -447,8 +504,8 @@ def generate(
     authorization: Optional[str] = Header(None),
 ) -> GenerateResponse:
     profile = _load_profile_or_400(body.profile_id, authorization)
-    result = matcher.match(
-        profile, body.job_description, extra_keywords=body.extra_keywords
+    result = _run_matcher(
+        profile, body.job_description, body.extra_keywords, body.strategy,
     )
 
     # If the caller is generating a CV from their OWN saved profile and has
