@@ -1,8 +1,9 @@
 # docker compose up
 #
-# Mounts data/ and output/ from the host so you can edit your profile and
-# CV template without rebuilding the image, and so generated PDFs show up
-# in the host's output/ folder.
+# Mounts data/ and output/ from the host so you can edit your profile
+# without rebuilding the image, and so generated PDFs show up in the host's
+# output/ folder. The CV template (backend/cv_template.md) is intentionally
+# baked into the image — see the volumes section below.
 
 services:
   cv-generator:
@@ -12,16 +13,22 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Edit data/profile.md and data/cv_template.md from the host — changes
-      # are picked up on the next /api/generate call (no rebuild needed).
+      # Edit data/profile.md (and demo profiles under data/profiles/) from the
+      # host — changes are picked up on the next /api/generate call.
+      # NOTE: cv_template.md is NOT in here anymore; it ships inside the image
+      # at /app/backend/cv_template.md so template edits require a rebuild
+      # (`docker compose build`). This matches how it works on Kubernetes,
+      # where the template is baked into the image instead of living on the
+      # PersistentVolume mounted at /app/data.
       - ./data:/app/data
       # Generated CVs (PDF + .md) persist to the host so you can inspect them
       # and they survive container restarts.
       - ./output:/app/output
     environment:
-      # auto -> WeasyPrint if available (it is, in this image), else xhtml2pdf.
-      # Set to "xhtml2pdf" to force the pure-Python backend.
-      CV_PDF_BACKEND: auto
+      # xhtml2pdf is the only backend in the slim image now — setting it
+      # explicitly makes the choice obvious. ("auto" would also resolve to
+      # xhtml2pdf since WeasyPrint is no longer installed.)
+      CV_PDF_BACKEND: xhtml2pdf
       # Clerk auth — read from .env (docker-compose auto-loads ./.env).
       # Leave empty to disable auth and open up the app.
       CLERK_PUBLISHABLE_KEY: "${CLERK_PUBLISHABLE_KEY:-}"

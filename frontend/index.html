@@ -685,9 +685,14 @@
       </div>
 
       <div style="margin-top: 14px;">
-        <label for="qr-url">QR code target URL (optional — shown in the CV header)</label>
-        <input id="qr-url" type="url" placeholder="e.g. https://feketegabor.com/portfolio or your LinkedIn profile" />
+        <label for="qr-url">Primary QR target URL (optional — shown larger in the CV header)</label>
+        <input id="qr-url" type="url" placeholder="e.g. https://feketegabor.com/portfolio" />
         <div class="helper">Recruiters can scan it to land on the URL of your choice. Leave empty for no QR.</div>
+      </div>
+      <div style="margin-top: 10px;">
+        <label for="qr-url-2">Secondary QR target URL (optional — shown smaller, below the primary)</label>
+        <input id="qr-url-2" type="url" placeholder="e.g. your LinkedIn profile" />
+        <div class="helper">Useful when you want both your portfolio AND LinkedIn scannable. Leave empty for a single QR.</div>
       </div>
       <div class="btn-row">
         <button id="analyze-btn" class="btn" type="button">Analyze match</button>
@@ -906,14 +911,17 @@
           `Loaded: ${p.name || "(no name)"} — ${p.title || ""} · `
           + `${nSkills} skills across ${Object.keys(p.skills || {}).length} groups, ${nJobs} roles.`;
 
-        // Default the QR URL: prefer profile.website, fall back to
-        // profile.linkedin, leave empty if neither is set. Always syncs
-        // to the currently-loaded profile — switching profiles in the
-        // dropdown updates the QR input to the matching URL.
-        const qr = $("qr-url");
-        qr.value = (p.website && p.website.trim())
-                || (p.linkedin && p.linkedin.trim())
-                || "";
+        // Default the QR URLs:
+        //   * Primary  → profile.website (or profile.linkedin if no website)
+        //   * Secondary→ profile.linkedin, but ONLY if it's different from
+        //     the primary (otherwise we'd render the same QR twice)
+        // Switching profiles in the dropdown re-syncs both inputs.
+        const site = (p.website && p.website.trim()) || "";
+        const li   = (p.linkedin && p.linkedin.trim()) || "";
+        const primary   = site || li || "";
+        const secondary = (li && li !== primary) ? li : "";
+        $("qr-url").value   = primary;
+        $("qr-url-2").value = secondary;
       } catch (e) {
         $("profile-status").innerHTML =
           `<span style="color: var(--danger)">Could not load profile: ${e.message}.</span>`;
@@ -987,7 +995,8 @@
       try {
         const r = await api("POST", "/api/generate", {
           job_description: jd,
-          qr_target_url: $("qr-url").value.trim() || null,
+          qr_target_url:    $("qr-url").value.trim() || null,
+          qr_secondary_url: $("qr-url-2").value.trim() || null,
           profile_id: currentProfileId,
           strategy: currentStrategy,
         });

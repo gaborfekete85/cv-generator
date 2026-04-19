@@ -41,7 +41,11 @@ PROFILES_DIR = DATA_DIR / "profiles"
 PROFILES_DIR.mkdir(exist_ok=True)
 PROFILE_PICTURES_DIR = DATA_DIR / "profile_pictures"
 PROFILE_PICTURES_DIR.mkdir(exist_ok=True)
-TEMPLATE_PATH = DATA_DIR / "cv_template.md"
+# CV template is shipped with the application code (not under DATA_DIR) so
+# changes to the layout flow through a normal Docker image rebuild instead
+# of needing to be hand-synced onto the Kubernetes persistent volume that
+# backs /app/data.
+TEMPLATE_PATH = Path(__file__).resolve().parent / "cv_template.md"
 
 # Limits for the profile-picture upload endpoint.
 MAX_PICTURE_BYTES = 5 * 1024 * 1024      # 5 MB raw upload
@@ -117,7 +121,14 @@ class GenerateRequest(BaseModel):
     job_title: Optional[str] = None
     company: Optional[str] = None
     extra_keywords: list[str] = Field(default_factory=list)
+    # Primary QR URL — bigger, intended as the recruiter's "scan-me-first"
+    # link (typically the user's website / portfolio). Optional.
     qr_target_url: Optional[str] = None
+    # Optional secondary QR URL — rendered smaller, beneath the primary.
+    # When both slots are filled, the CV header shows two QR codes stacked.
+    # When only one slot is filled, the layout collapses to the original
+    # single-QR design.
+    qr_secondary_url: Optional[str] = None
     profile_id: Optional[str] = None
     strategy: Optional[str] = "keyword"
 
@@ -525,6 +536,7 @@ def generate(
         profile, result, TEMPLATE_PATH,
         job_title=body.job_title,
         qr_target_url=body.qr_target_url,
+        qr_secondary_url=body.qr_secondary_url,
         photo_path=photo_path,
     )
 

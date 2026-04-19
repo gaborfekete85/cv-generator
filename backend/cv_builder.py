@@ -90,6 +90,21 @@ table.header-table td { border: 0; padding: 0; vertical-align: middle; }
   white-space: nowrap;
 }
 .qr-badge-below { display: none; }
+/* Inline QR rendered next to the LinkedIn anchor in the contact line.
+   `vertical-align: middle` keeps it centred on the text baseline. */
+.inline-qr {
+  vertical-align: middle;
+  margin-left: 5pt;
+  margin-right: 2pt;
+}
+/* LinkedIn variant — solid/branded blue gradient. Declared AFTER the
+   default `.qr-badge-overlay` rule so the cascade picks the blue
+   background on ties. The fallback `.qr-badge-below` rule below in the
+   xhtml2pdf stylesheet has its own override using `background-color`. */
+.qr-badge-overlay.qr-badge-linkedin,
+.qr-badge-linkedin {
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+}
 """
 
 # xhtml2pdf has a simpler CSS engine (no letter-spacing, no text-transform,
@@ -137,6 +152,16 @@ table.header-table { width: 100%; margin-bottom: 4pt; }
   color: #ffffff;
   background-color: #ec4899;
 }
+/* LinkedIn variant — branded blue. xhtml2pdf doesn't render gradients
+   reliably so we use a solid LinkedIn-ish blue. Declared AFTER the base
+   .qr-badge-below rule so the cascade picks blue on ties. */
+.qr-badge-linkedin { background-color: #2563eb; }
+/* Inline QR next to the LinkedIn anchor in the contact line. xhtml2pdf
+   has flaky `vertical-align` support on inline images, so we just nudge
+   it with side margins and accept whichever baseline the engine picks
+   (it lands close to centre because the image height is comparable to
+   the contact line's font-size + leading). */
+.inline-qr { margin-left: 5pt; margin-right: 2pt; vertical-align: middle; }
 """
 
 
@@ -277,8 +302,13 @@ def _qr_label(url: str | None) -> str:
 
     Returns "" if there's no URL — the template renders nothing in that case.
     We keep the detection dumb-but-obvious: anything whose host contains
-    `linkedin.com` is labelled "LinkedIn", otherwise it's "Portfolio".
+    `linkedin.com` is labelled "LinkedIn", otherwise it's "Portfolio website".
     Useful special cases (GitHub, personal site) can be added here later.
+
+    The template also branches on this string to pick the badge colour
+    (LinkedIn → blue, everything else → the default pink/blue gradient),
+    so keep the literal "LinkedIn" return value in sync with the
+    `{% if qr_label == 'LinkedIn' %}` check in `cv_template.md`.
     """
     if not url or not url.strip():
         return ""
@@ -287,7 +317,7 @@ def _qr_label(url: str | None) -> str:
         return "LinkedIn"
     if "github.com" in u:
         return "GitHub"
-    return "Portfolio"
+    return "Portfolio website"
 
 
 def _tailored_summary(profile: dict, match: MatchResult, job_title: str | None) -> str:
@@ -342,6 +372,7 @@ def render_markdown(
     template_path: str | Path,
     job_title: str | None = None,
     qr_target_url: str | None = None,
+    qr_secondary_url: str | None = None,
     photo_path: str | Path | None = None,
 ) -> str:
     template_path = Path(template_path)
@@ -353,10 +384,23 @@ def render_markdown(
     )
     template = env.get_template(template_path.name)
 
-    # QR code: only embedded if a URL was supplied.
-    qr_data_uri = ""
-    if qr_target_url and qr_target_url.strip():
-        qr_data_uri = assets.generate_qr_data_uri(qr_target_url)
+    # Defensive normalisation: treat blank strings as None and, if only the
+    # secondary slot is filled, promote it to primary. Keeps the template's
+    # "primary present?" check meaningful — the dual-QR layout only triggers
+    # when there are actually two distinct URLs to render.
+    primary = (qr_target_url or "").strip() or None
+    secondary = (qr_secondary_url or "").strip() or None
+    if not primary and secondary:
+        primary, secondary = secondary, None
+    # Don't render the same QR twice if the user accidentally supplies both
+    # slots with the same URL.
+    if primary and secondary and primary.lower() == secondary.lower():
+        secondary = None
+
+    qr_data_uri = assets.generate_qr_data_uri(primary) if primary else ""
+    qr_secondary_data_uri = (
+        assets.generate_qr_data_uri(secondary) if secondary else ""
+    )
 
     # Photo:
     #   * If the caller passed an existing photo_path → embed it.
@@ -378,7 +422,9 @@ def render_markdown(
         highlighted_skills=_highlight_skills(profile, match),
         ordered_experience=_order_experience_by_match(profile, match),
         qr_data_uri=qr_data_uri,
-        qr_label=_qr_label(qr_target_url),
+        qr_label=_qr_label(primary),
+        qr_secondary_data_uri=qr_secondary_data_uri,
+        qr_secondary_label=_qr_label(secondary),
         photo_data_uri=photo_data_uri,
     )
 
@@ -466,6 +512,7 @@ def build_cv(
     template_path: str | Path,
     job_title: str | None = None,
     qr_target_url: str | None = None,
+    qr_secondary_url: str | None = None,
     photo_path: str | Path | None = None,
 ) -> tuple[str, bytes, str]:
     """Returns (markdown_text, pdf_bytes, backend_used)."""
@@ -473,6 +520,7 @@ def build_cv(
         profile, match, template_path,
         job_title=job_title,
         qr_target_url=qr_target_url,
+        qr_secondary_url=qr_secondary_url,
         photo_path=photo_path,
     )
     pdf_bytes, backend = markdown_to_pdf(md_text)

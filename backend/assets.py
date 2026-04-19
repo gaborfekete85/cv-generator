@@ -48,22 +48,44 @@ def generate_qr_data_uri(url: str, size_px: int = 260) -> str:
 
 
 def photo_data_uri_from_file(path: str | "Path", size_px: int = 260) -> str:
-    """Return a base64 PNG data URI from an image on disk, square-cropped
-    and resized to ``size_px``. Used to embed a user's uploaded profile
-    picture in the generated CV PDF.
+    """Return a base64 PNG data URI from an image on disk, square-cropped,
+    resized to ``size_px``, and masked into a circle.
+
+    The circular mask is baked into the alpha channel of the PNG instead of
+    being applied via CSS ``border-radius``. xhtml2pdf — the only PDF
+    backend the slim Docker image now ships — does not honour border-radius
+    on ``<img>`` elements, so the rounding has to live in the asset itself
+    if we want it to render the same in both the WeasyPrint and xhtml2pdf
+    pipelines.
+
+    The CV page background is white, so the transparent corners of the
+    resulting PNG visually disappear and you get the circular portrait look
+    that matches the in-app profile preview.
     """
     from pathlib import Path as _Path
     img = Image.open(_Path(path))
     if img.mode != "RGB":
         img = img.convert("RGB")
-    # Centre-crop to square so circular masks (CSS border-radius: 50%) and
-    # square portrait cells both look right.
+    # Centre-crop to square so the subject stays centred under the circular
+    # mask regardless of the upload's aspect ratio.
     w, h = img.size
     side = min(w, h)
     left = (w - side) // 2
     top = (h - side) // 2
     img = img.crop((left, top, left + side, top + side))
-    img = img.resize((size_px, size_px), Image.LANCZOS)
+    img = img.resize((size_px, size_px), Image.LANCZOS).convert("RGBA")
+
+    # Anti-aliased circular alpha mask: draw the ellipse at 4x then downsample
+    # with LANCZOS so the edge is smooth instead of aliased pixel steps. A
+    # plain `ellipse(..., fill=255)` at native resolution produces a visibly
+    # jagged perimeter at this size.
+    scale = 4
+    mask_hi = Image.new("L", (size_px * scale, size_px * scale), 0)
+    ImageDraw.Draw(mask_hi).ellipse(
+        (0, 0, size_px * scale - 1, size_px * scale - 1), fill=255
+    )
+    mask = mask_hi.resize((size_px, size_px), Image.LANCZOS)
+    img.putalpha(mask)
     return _png_data_uri(img)
 
 

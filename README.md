@@ -11,8 +11,9 @@ it against your profile, and generates a tailored CV as a downloadable PDF.
 2. You paste (or fetch) a job description in the web UI.
 3. The matcher extracts keywords from the JD and compares them against your
    profile to produce a percentage match plus lists of matched / missing skills.
-4. The CV builder renders [`data/cv_template.md`](data/cv_template.md) with
-   Jinja2, emphasising the skills that match the job, then converts it to PDF.
+4. The CV builder renders [`backend/cv_template.md`](backend/cv_template.md)
+   with Jinja2, emphasising the skills that match the job, then converts it
+   to PDF.
 5. The generated PDF is downloadable directly from the browser.
 
 ## Run with Docker (easiest)
@@ -35,8 +36,10 @@ What the compose file does:
 
 - Builds the image from the local `Dockerfile`.
 - Publishes port `8000` on the host.
-- Mounts `./data` into the container so edits to `profile.md` and
-  `cv_template.md` are picked up immediately — no rebuild needed.
+- Mounts `./data` into the container so edits to `profile.md` (and demo
+  profiles under `data/profiles/`) are picked up immediately — no rebuild
+  needed. Note: `cv_template.md` lives at `backend/cv_template.md` and is
+  baked into the image, so template edits require a rebuild.
 - Mounts `./output` so generated PDFs land on the host filesystem and survive
   container restarts.
 - Sets `CV_PDF_BACKEND=auto` so the nicer WeasyPrint backend is used.
@@ -180,10 +183,16 @@ mention the tech, industries, and methodologies you want to surface there.
 
 ## Change the CV layout
 
-Edit `data/cv_template.md`. It's a Jinja2 template; the variables available are
-`profile` (your parsed profile), `match` (the match result), `tailored_summary`
-(a short per-job summary string), `highlighted_skills` (skill groups reordered
-so matched skills come first), and `ordered_experience` (experience in
+Edit `backend/cv_template.md`. It lives next to the application code (rather
+than in `data/`) on purpose: the template is part of the app, so it ships with
+the Docker image and reaches Kubernetes through a normal rebuild + rollout
+instead of needing to be hand-copied onto the persistent volume backing
+`/app/data`.
+
+It's a Jinja2 template; the variables available are `profile` (your parsed
+profile), `match` (the match result), `tailored_summary` (a short per-job
+summary string), `highlighted_skills` (skill groups reordered so matched
+skills come first), and `ordered_experience` (experience in
 reverse-chronological order, which is what recruiters expect).
 
 Styling is defined in `backend/cv_builder.py` — there are two stylesheets,
@@ -224,12 +233,12 @@ cv-generator/
 │   ├── cv_builder.py      # MD template -> PDF (WeasyPrint or xhtml2pdf)
 │   ├── jd_fetcher.py      # Best-effort URL fetcher
 │   ├── assets.py          # QR code + user-icon image generation
-│   └── profile_loader.py  # Parse profile.md (YAML + body)
+│   ├── profile_loader.py  # Parse profile.md (YAML + body)
+│   └── cv_template.md     # ← CV layout (ships in the image)
 ├── frontend/
 │   └── index.html         # Single-page UI
 ├── data/
-│   ├── profile.md         # ← edit this
-│   └── cv_template.md     # ← CV layout
+│   └── profile.md         # ← edit this
 ├── output/                # Generated PDFs land here
 ├── Dockerfile             # Container image definition
 ├── docker-compose.yml     # One-shot run with volumes

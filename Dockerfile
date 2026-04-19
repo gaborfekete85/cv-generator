@@ -14,15 +14,17 @@
 # ============================================================================
 FROM python:3.12-slim-bookworm AS builder
 
+# Only the dev headers needed to compile pycairo from source when no wheel
+# is available (pycairo is pulled in transitively by xhtml2pdf → svglib →
+# rlPyCairo). We previously also installed libpango1.0-dev / libharfbuzz-dev /
+# libffi-dev for WeasyPrint — those are no longer required since we ship
+# the slim xhtml2pdf-only stack.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     build-essential \
     pkg-config \
     python3-dev \
     libcairo2-dev \
-    libpango1.0-dev \
-    libharfbuzz-dev \
-    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -50,14 +52,18 @@ RUN pip install --upgrade pip wheel \
 # ============================================================================
 FROM python:3.12-slim-bookworm
 
+# Runtime deps:
+#   libcairo2       — used by pycairo / rlPyCairo at runtime (xhtml2pdf
+#                     needs this indirectly to rasterise embedded vectors)
+#   fonts-dejavu-core — default sans / serif / mono so Unicode-ish text
+#                       in CVs has something to fall back to
+#
+# Everything else (libpango*, libharfbuzz*, libffi8, shared-mime-info) was
+# there for WeasyPrint. Since we no longer ship WeasyPrint, they're gone —
+# saves ~80 MB on the final image.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libharfbuzz0b \
-    libffi8 \
     libcairo2 \
-    shared-mime-info \
     fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 

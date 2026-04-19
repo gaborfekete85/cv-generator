@@ -30,9 +30,14 @@ spec:
       {{- if and .Values.persistence.enabled .Values.persistence.seedDemoData }}
       initContainers:
         # Seed the PVC with the image's bundled /app/data tree — demo
-        # profile markdown files, the CV template, any starter content.
-        # `cp -rn` is idempotent and never overwrites existing files, so
-        # user-created profile JSONs / uploaded pictures persist safely.
+        # profile markdown files plus any starter content. `cp -rn` is
+        # idempotent and never overwrites existing files, so user-created
+        # profile JSONs / uploaded pictures persist safely.
+        #
+        # NOTE: cv_template.md is intentionally NOT seeded here. It lives
+        # under /app/backend/cv_template.md (baked into the image), so
+        # template edits ship via a normal `docker build` + rollout instead
+        # of needing a manual `kubectl cp` onto the PVC.
         - name: seed-data
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}

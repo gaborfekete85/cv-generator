@@ -40,10 +40,10 @@ data/profile_pictures/*
 output/*
 !output/.gitkeep
 
-# Bundled demo profiles and the CV template ARE source code — never ignore.
+# Bundled demo profiles ARE source code — never ignore.
+# (The CV template lives at backend/cv_template.md and is tracked normally.)
 !data/profiles/*.md
 !data/profile.md
-!data/cv_template.md
 
 # =============================================================================
 # Python

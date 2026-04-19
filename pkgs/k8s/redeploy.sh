@@ -115,3 +115,8 @@ helm "${HELM_ARGS[@]}"
 
 log "Done. Release status:"
 helm status "$RELEASE" --namespace "$NAMESPACE" | head -20
+
+# NOTE: cv_template.md no longer needs a manual `kubectl cp` — it lives
+# at backend/cv_template.md and is baked into the image, so any template
+# edit reaches the cluster through this redeploy script (which rebuilds
+# the image and rolls the deployment).
