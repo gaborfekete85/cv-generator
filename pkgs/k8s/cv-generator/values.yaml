@@ -55,9 +55,13 @@ ingress:
 
 # --- Container env --------------------------------------------------------
 env:
-  # "auto" → WeasyPrint if the system libs are present (they are, in the
-  # baked image), else fall back to xhtml2pdf.
-  CV_PDF_BACKEND: auto
+  # "xhtml2pdf" — the Docker image only ships the xhtml2pdf backend now
+  # (Pango / Cairo native libs for WeasyPrint have been removed to keep
+  # the image slim and to match the default macOS dev setup). "auto" also
+  # resolves to xhtml2pdf in this image, but we set it explicitly so the
+  # behaviour is obvious.
+  CV_PDF_BACKEND: xhtml2pdf
+  CLERK_PUBLISHABLE_KEY: pk_test_YWxsb3dlZC1waWdsZXQtNDAuY2xlcmsuYWNjb3VudHMuZGV2JA
 
 # Extra env vars as a list (for Secret/ConfigMap references etc.).
 extraEnv: []

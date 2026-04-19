@@ -4,7 +4,10 @@
       {% if qr_data_uri %}
       <!-- Nested table so the xhtml2pdf fallback can stack the label
            neatly BELOW the QR. WeasyPrint uses the absolutely-positioned
-           overlay (thought-bubble trail) and hides the fallback row. -->
+           overlay (thought-bubble trail) and hides the fallback row.
+           Only the PRIMARY QR lives here; the secondary QR (typically
+           LinkedIn) is rendered inline next to the LinkedIn anchor in
+           the contact line below. -->
       <table cellpadding="0" cellspacing="0" border="0">
         <tr><td align="center">
           <div class="qr-wrap">
@@ -14,14 +17,14 @@
                  positions the overlay pill at the tip of the trail. -->
             <span class="qr-bubble qr-bubble-sm"></span>
             <span class="qr-bubble qr-bubble-md"></span>
-            <span class="qr-badge-overlay">{{ qr_label }}</span>
+            <span class="qr-badge-overlay{% if qr_label == 'LinkedIn' %} qr-badge-linkedin{% endif %}">{{ qr_label }}</span>
             {% endif %}
           </div>
         </td></tr>
         {% if qr_label %}
         <tr><td align="center">
           <!-- xhtml2pdf-only fallback pill (hidden in WeasyPrint). -->
-          <span class="qr-badge-below">{{ qr_label }}</span>
+          <span class="qr-badge-below{% if qr_label == 'LinkedIn' %} qr-badge-linkedin{% endif %}">{{ qr_label }}</span>
         </td></tr>
         {% endif %}
       </table>
@@ -50,8 +53,8 @@
         {{ loc_bits | join(' | ') }}
       </div>
       {% if profile.get('linkedin') or profile.get('github') %}
-      <div class="cv-contact">
-        {% if profile.get('linkedin') %}<a href="{{ profile.linkedin }}">LinkedIn</a>{% endif %}
+      <div class="cv-contact cv-contact-with-qr">
+        {% if profile.get('linkedin') %}<a href="{{ profile.linkedin }}">LinkedIn</a>{% if qr_secondary_data_uri %}<img class="inline-qr" src="{{ qr_secondary_data_uri }}" alt="LinkedIn QR" width="36" height="36" />{% endif %}{% endif %}
         {% if profile.get('linkedin') and profile.get('github') %} | {% endif %}
         {% if profile.get('github') %}<a href="{{ profile.github }}">GitHub</a>{% endif %}
       </div>

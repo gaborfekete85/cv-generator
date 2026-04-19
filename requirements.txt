@@ -33,12 +33,15 @@ fastembed>=0.3
 # QR code + user icon image generation (Pillow is pulled in by qrcode[pil])
 qrcode[pil]>=7.4
 
-# PDF rendering — pure-Python fallback. Works everywhere pip works.
+# PDF rendering — pure-Python. Works everywhere pip works, no system libs.
+# This is now the ONLY backend the Docker image ships with, matching the
+# default macOS dev setup (where WeasyPrint would silently fall back to
+# xhtml2pdf anyway because Pango is usually not installed on a Mac).
 xhtml2pdf>=0.2.15
 
-# PDF rendering — preferred backend. Requires Pango/Cairo system libraries.
-# On macOS:   brew install pango
-# On Ubuntu:  sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0
-# If you can't install the system libs, the app will fall back to xhtml2pdf
-# automatically — you don't need to uninstall weasyprint.
-weasyprint>=62.0; sys_platform != "win32"
+# WeasyPrint was previously the preferred backend when Pango/Cairo native
+# libs were available. It gives nicer output (gradients, text-transform,
+# absolute positioning) but produces a CV that looks different from the
+# xhtml2pdf fallback. Uncomment the two lines below — and the matching
+# apt packages in the Dockerfile — if you specifically want WeasyPrint.
+# weasyprint>=62.0; sys_platform != "win32"
